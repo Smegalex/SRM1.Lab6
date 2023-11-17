@@ -208,10 +208,10 @@ def simplify_disjunctive_multiplicity(formula: str):
 try:
     # simplify_disjunctive_multiplicity("¬¬p∨¬(q∨s), ¬p∨s,¬s ⊢ ¬p∧q, r")
     # simplify_disjunctive_multiplicity("p→q, r→s,(p∨s) →t, q,¬t ⊢¬r")
-    # simplify_disjunctive_multiplicity(
-    #    "p→r, q→s, r → t, s→h, t → ¬h, p → q ⊢ ¬p")
     simplify_disjunctive_multiplicity(
-        "p→(r →q),(q∧s)→t, ¬h  → (s∧¬t) ⊢ p→(r →h)")
+        "p→r, q→s, r → t, s→h, t → ¬h, p → q ⊢ ¬p")
+    # simplify_disjunctive_multiplicity(
+    #   "p→(r →q),(q∧s)→t, ¬h  → (s∧¬t) ⊢ p→(r →h)")
 except ValueError:
     print("ValueError - '⊢' (logical assumption, turnstile) symbol is not present in the formula")
 

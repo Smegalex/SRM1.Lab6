@@ -1,8 +1,10 @@
 def divide_expression(expression: str) -> list:
+    expression = simplify_implication(expression)
+    expression = simplify_negation(expression)
     expression_result = []
     buffer = ""
     for i in range(len(expression)):
-        if expression[i] == "∨" or expression[i] == "→" or expression[i] == "∧" or expression[i] == "(" or expression[i] == ")":
+        if expression[i] == "∨" or expression[i] == "→" or expression[i] == "∧" or expression[i] == "(" or expression[i] == ")" or (expression[i] == "¬" and expression[i+1] == "("):
             if buffer != "":
                 expression_result.append(buffer)
             expression_result.append(expression[i])
@@ -11,7 +13,8 @@ def divide_expression(expression: str) -> list:
         buffer += expression[i]
     if buffer != "":
         expression_result.append(buffer)
-    print(expression_result)
+
+    expression_result = open_brackets(expression_result)
     return expression_result
 
 
@@ -24,36 +27,154 @@ def divide_by_expressions(conditions: str) -> list:
             conditions_result.append([conditions[i]])
             continue
 
+        condition_buffer = ""
         expression_start = False
+        bracket_start = False
         expression = ""
+        bracket_expression = ""
         buffer = ""
         for j in range(len(conditions[i])):
-            if conditions[i][j] == "∨" or conditions[i][j] == "→":
+            if (conditions[i][j] == "∨" or conditions[i][j] == "→") and not bracket_start:
                 expression_start = not expression_start
                 if expression_start:
                     expression += buffer
                     buffer = ""
                 else:
                     expression += buffer
-                    expression = divide_expression(expression)
-                    if i < len(conditions_result):
-                        conditions_result[i] = expression
-                    else:
-                        conditions_result.append(expression)
+                    condition_buffer += expression
                     expression_start = True
                     expression = ""
                     buffer = ""
+            if conditions[i][j] == "(" or conditions[i][j] == ")":
+                bracket_start = not bracket_start
+                if bracket_start:
+                    bracket_expression += buffer
+                    buffer = ""
+                else:
+                    bracket_expression += buffer + ")"
+                    if expression != "":
+                        condition_buffer += expression
+                        expression = ""
+                    condition_buffer += bracket_expression
+                    bracket_expression = ""
+                    buffer = ""
+                    continue
+
             buffer += conditions[i][j]
         expression += buffer
-        expression = divide_expression(expression)
-        if i < len(conditions_result):
-            conditions_result[i] = expression
-        else:
-            conditions_result.append(expression)
+        condition_buffer += expression
+        condition_buffer = divide_expression(condition_buffer)
+        conditions_result.append(condition_buffer)
 
     print(conditions)
     print(conditions_result)
     return conditions_result
+
+
+def simplify_implication(expression: str) -> str:
+    expression_result = expression
+    # remove '→' (implication)
+    if expression.count("→"):
+        expression = expression.replace(" ", "")
+        expression = expression.split("→")
+        expression[0] = "¬" + expression[0]
+        expression_result = expression[0] + "∨" + expression[1]
+    return expression_result
+
+
+def simplify_negation(expression: str) -> str:
+    # remove extra '¬' (negation)
+    logic_negation_count = 0
+    expression_result = ""
+    for i in range(len(expression)):
+        if expression[i] == "¬":
+            logic_negation_count += 1
+            continue
+        if not (logic_negation_count % 2 == 0) and logic_negation_count != 0:
+            expression_result += "¬"
+        logic_negation_count = 0
+
+        expression_result += expression[i]
+
+    return expression_result
+
+
+def open_brackets(expression: list) -> list:
+    expression_result = expression
+
+    if expression.count("("):
+        expression_result = []
+        for i in range(len(expression)):
+            if expression[i] == "(" and i > 0:
+                if expression[i-1] == "¬":
+                    expression_result = negation_brackets(expression, i-1)
+                    expression_result = open_brackets(expression_result)
+                if expression[i-1] == expression[i+2] and (expression[i-1] == "∨" or expression[i-1] == "∧"):
+                    expression_result = ' '.join(expression).translate(
+                        {ord(i): None for i in "()"}).split()
+                    expression_result = open_brackets(expression_result)
+                if expression[i-1] == "∧" and expression[i+2] == "∨":
+                    expression_result = concat_brackets(expression, i-1)
+                    expression_result = open_brackets(expression_result)
+                if expression[i-1] == "∨" and expression[i+2] == "∧":
+                    if expression_result == []:
+                        expression_result = expression
+                    break
+            elif expression[i] == ")" and i < len(expression)-1:
+                if expression_result == []:
+                    end = expression[i+1:]
+                    end.reverse()
+                    expression_result = end + expression[:i+1]
+                    open_brackets(expression_result)
+    print(expression_result)
+    return expression_result
+
+
+def concat_brackets(expression: list, start_index: int) -> list:
+    expression_result = []
+    for i in range(start_index-1):
+        expression_result.append(expression[i])
+
+    buffer = ""
+    end_index = 0
+    for i in range(start_index+2, len(expression)):
+        if expression[i] == ")":
+            end_index = i+1
+            break
+        elif expression[i] == "∨":
+            buffer += "∨"
+        else:
+            buffer += "(" + expression(start_index-1) + \
+                "∧" + expression[i] + ")"
+    for i in range(end_index, len(expression)):
+        expression_result.append(expression[i])
+
+    return expression_result
+
+
+def negation_brackets(expression: list, start_index: int) -> list:
+    expression_result = []
+    for i in range(start_index):
+        expression_result.append(expression[i])
+
+    buffer = ""
+    end_index = 0
+    for i in range(start_index+2, len(expression)):
+        if expression[i] == ")":
+            end_index = i+1
+            break
+        elif expression[i] == "∧":
+            buffer += "∨"
+        elif expression[i] == "∨":
+            buffer += "∧"
+        else:
+            buffer += "¬" + expression[i]
+    expression_result += ["("] + divide_expression(buffer) + [")"]
+
+    for i in range(end_index, len(expression)):
+        expression_result.append(expression[i])
+
+    return expression_result
 
 
 def simplify_disjunctive_multiplicity(formula: str):
@@ -71,7 +192,11 @@ def simplify_disjunctive_multiplicity(formula: str):
     results = divide_by_expressions(results)
 
 
-simplify_disjunctive_multiplicity("¬p∨(q∧s), ¬p∨s,¬s ⊢ ¬p∧q, r")
+try:
+    # simplify_disjunctive_multiplicity("¬¬p∨¬(q∨s), ¬p∨s,¬s ⊢ ¬p∧q, r")
+    simplify_disjunctive_multiplicity("p→q, r→s,(p∨s) →t, q,¬t ⊢¬r")
+except ValueError:
+    print("ValueError - '⊢' (logical assumption, turnstile) symbol is not present in the formula")
 
-# ∨    →    ∧    ⊢
+# ∨    →    ∧    ⊢      ¬
 # "ValueError - '⊢' (logical assumption, turnstile) symbol is not present in the formula"

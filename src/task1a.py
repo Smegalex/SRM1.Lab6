@@ -182,11 +182,34 @@ def negation_brackets(expression: list, start_index: int) -> list:
             buffer += "∧"
         else:
             buffer += "¬" + expression[i]
-    expression_result += ["("] + divide_expression(buffer) + [")"]
+    expression_result += divide_expression(buffer)
+    if len(expression_result) > 3:
+        expression_result += ["("] + expression_result + [")"]
 
     for i in range(end_index, len(expression)):
         expression_result.append(expression[i])
 
+    return expression_result
+
+
+def close_bracketed(expression: list) -> list:
+    expression_result = []
+    bracketed_start = False
+    bracketed_expr = ""
+    for i in range(len(expression)):
+        if expression[i] == "(":
+            bracketed_start = True
+
+        if expression[i] == ")":
+            bracketed_start = False
+            expression_result.append(bracketed_expr + ")")
+            bracketed_expr = ""
+
+        if bracketed_start:
+            bracketed_expr += expression[i]
+            continue
+
+        expression_result.append(expression[i])
     return expression_result
 
 
@@ -204,16 +227,52 @@ def simplify_disjunctive_multiplicity(formula: str):
     print("\n")
     results = divide_by_expressions(results)
 
+    for i in range(len(conditions)):
+        conditions[i] = close_bracketed(conditions[i])
+    for j in range(len(results)):
+        results[j] = negation_brackets(["¬"]+["("]+results[j]+[")"], 0)
+        results[j] = close_bracketed(results[j])
 
-try:
-    # simplify_disjunctive_multiplicity("¬¬p∨¬(q∨s), ¬p∨s,¬s ⊢ ¬p∧q, r")
-    # simplify_disjunctive_multiplicity("p→q, r→s,(p∨s) →t, q,¬t ⊢¬r")
-    simplify_disjunctive_multiplicity(
-        "p→r, q→s, r → t, s→h, t → ¬h, p → q ⊢ ¬p")
-    # simplify_disjunctive_multiplicity(
-    #   "p→(r →q),(q∧s)→t, ¬h  → (s∧¬t) ⊢ p→(r →h)")
-except ValueError:
-    print("ValueError - '⊢' (logical assumption, turnstile) symbol is not present in the formula")
+    disjunctive_multiplicity = conditions + results
+    print(disjunctive_multiplicity)
+    return disjunctive_multiplicity
+
+
+def ResolutionMethod(disjunctive_multiplicity: list):
+
+    resulting_multiplicity = disjunctive_multiplicity
+    buffer = ""
+    match = False
+    literal = ""
+    for i in disjunctive_multiplicity:
+        for j in range(len(i)):
+            if i[j] != "∨":
+                literal = simplify_negation("¬"+i[j])
+                buffer = resulting_multiplicity.copy()
+                for k in range(len(resulting_multiplicity)):
+                    if resulting_multiplicity[k].count(literal):
+                        buffer.pop(k)
+                        match = True
+                if match and buffer:
+                    buffer.pop(j)
+                resulting_multiplicity = buffer
+    print(resulting_multiplicity)
+    return resulting_multiplicity
+
+
+def is_true_logical_statement(statement: str) -> bool:
+    try:
+        disjunctive_multiplicity = simplify_disjunctive_multiplicity(statement)
+    except ValueError:
+        print("ValueError - '⊢' (logical assumption, turnstile) symbol is not present in the formula")
+
+    resulting_multiplicity = ResolutionMethod(disjunctive_multiplicity)
+
+    if resulting_multiplicity == []:
+        return True
+    else:
+        return False
+
 
 # ∨    →    ∧    ⊢      ¬
 # "ValueError - '⊢' (logical assumption, turnstile) symbol is not present in the formula"

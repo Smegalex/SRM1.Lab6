@@ -131,6 +131,10 @@ def open_brackets(expression: list) -> list:
                     if expression_result == []:
                         expression_result = expression
                     break
+            elif expression[0] == "(" and expression[-1] == ")":
+                expression_result = ' '.join(expression).translate(
+                    {ord(i): None for i in "()"}).split()
+                expression_result = open_brackets(expression_result)
             elif expression[i] == ")" and i < len(expression)-1:
                 if expression_result.count(")") or expression_result == []:
                     end = expression[i+1:]
@@ -179,9 +183,12 @@ def negation_brackets(expression: list, start_index: int) -> list:
             buffer += "∧"
         else:
             buffer += "¬" + expression[i]
-    expression_result += divide_expression(buffer)
-    if len(expression_result) > 3:
-        expression_result += ["("] + expression_result + [")"]
+    buffer = divide_expression(buffer)
+    if len(buffer) > 1:
+        expression_result += ["("] + buffer + [")"]
+        expression_result = open_brackets(expression_result)
+    else:
+        expression_result += buffer
 
     for i in range(end_index, len(expression)):
         expression_result.append(expression[i])
@@ -199,8 +206,9 @@ def close_bracketed(expression: list) -> list:
 
         if expression[i] == ")":
             bracketed_start = False
-            expression_result.append(bracketed_expr + ")")
+            expression_result.append(bracketed_expr+")")
             bracketed_expr = ""
+            continue
 
         if bracketed_start:
             bracketed_expr += expression[i]
@@ -226,7 +234,8 @@ def simplify_disjunctive_multiplicity(formula: str):
     for i in range(len(conditions)):
         conditions[i] = close_bracketed(conditions[i])
     for j in range(len(results)):
-        results[j] = negation_brackets(["¬"]+["("]+results[j]+[")"], 0)
+        results[j] = divide_expression(results[j])
+        results[j] = open_brackets(["¬"]+["("]+results[j]+[")"])
         results[j] = close_bracketed(results[j])
 
     disjunctive_multiplicity = conditions + results
@@ -268,6 +277,6 @@ def is_true_logical_statement(statement: str) -> bool:
         return False
 
 
-simplify_disjunctive_multiplicity("¬¬p∨¬(q∨s), ¬p∨s,¬s ⊢ ¬p∧q, r")
+# simplify_disjunctive_multiplicity("p→(r →q),(q∧s)→t, ¬h  → (s∧¬t) ⊢ p→(r →h)")
 # ∨    →    ∧    ⊢      ¬
 # "ValueError - '⊢' (logical assumption, turnstile) symbol is not present in the formula"

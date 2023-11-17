@@ -74,11 +74,24 @@ def divide_by_expressions(conditions: str) -> list:
 def simplify_implication(expression: str) -> str:
     expression_result = expression
     # remove '→' (implication)
+    brackets = False
+    if len(expression) < 3:
+        return expression_result
     if expression.count("→"):
+        if expression[0] == "(" and expression[-1] == ")":
+            expression = expression.translate({ord(i): None for i in "()"})
+            brackets = True
+
         expression = expression.replace(" ", "")
-        expression = expression.split("→")
+        ind = expression.index("→")
+        expression = [expression[:ind]] + [expression[ind+1:]]
+
         expression[0] = "¬" + expression[0]
+        expression[1] = simplify_implication(expression[1])
         expression_result = expression[0] + "∨" + expression[1]
+
+        if brackets:
+            expression_result = "(" + expression_result + ")"
     return expression_result
 
 
@@ -105,7 +118,7 @@ def open_brackets(expression: list) -> list:
     if expression.count("("):
         expression_result = []
         for i in range(len(expression)):
-            if expression[i] == "(" and i > 0:
+            if expression[i] == "(" and i > 0 and i+2 < len(expression):
                 if expression[i-1] == "¬":
                     expression_result = negation_brackets(expression, i-1)
                     expression_result = open_brackets(expression_result)
@@ -121,11 +134,11 @@ def open_brackets(expression: list) -> list:
                         expression_result = expression
                     break
             elif expression[i] == ")" and i < len(expression)-1:
-                if expression_result == []:
+                if expression_result.count(")") or expression_result == []:
                     end = expression[i+1:]
                     end.reverse()
                     expression_result = end + expression[:i+1]
-                    open_brackets(expression_result)
+                    expression_result = open_brackets(expression_result)
     print(expression_result)
     return expression_result
 
@@ -194,7 +207,11 @@ def simplify_disjunctive_multiplicity(formula: str):
 
 try:
     # simplify_disjunctive_multiplicity("¬¬p∨¬(q∨s), ¬p∨s,¬s ⊢ ¬p∧q, r")
-    simplify_disjunctive_multiplicity("p→q, r→s,(p∨s) →t, q,¬t ⊢¬r")
+    # simplify_disjunctive_multiplicity("p→q, r→s,(p∨s) →t, q,¬t ⊢¬r")
+    # simplify_disjunctive_multiplicity(
+    #    "p→r, q→s, r → t, s→h, t → ¬h, p → q ⊢ ¬p")
+    simplify_disjunctive_multiplicity(
+        "p→(r →q),(q∧s)→t, ¬h  → (s∧¬t) ⊢ p→(r →h)")
 except ValueError:
     print("ValueError - '⊢' (logical assumption, turnstile) symbol is not present in the formula")
 

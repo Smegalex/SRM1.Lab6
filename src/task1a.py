@@ -66,8 +66,6 @@ def divide_by_expressions(conditions: str) -> list:
         condition_buffer = divide_expression(condition_buffer)
         conditions_result.append(condition_buffer)
 
-    print(conditions)
-    print(conditions_result)
     return conditions_result
 
 
@@ -139,7 +137,6 @@ def open_brackets(expression: list) -> list:
                     end.reverse()
                     expression_result = end + expression[:i+1]
                     expression_result = open_brackets(expression_result)
-    print(expression_result)
     return expression_result
 
 
@@ -224,7 +221,6 @@ def simplify_disjunctive_multiplicity(formula: str):
     conditions = conditions.split(",")
     results = results.split(",")
     conditions = divide_by_expressions(conditions)
-    print("\n")
     results = divide_by_expressions(results)
 
     for i in range(len(conditions)):
@@ -234,7 +230,6 @@ def simplify_disjunctive_multiplicity(formula: str):
         results[j] = close_bracketed(results[j])
 
     disjunctive_multiplicity = conditions + results
-    print(disjunctive_multiplicity)
     return disjunctive_multiplicity
 
 
@@ -253,10 +248,9 @@ def ResolutionMethod(disjunctive_multiplicity: list):
                     if resulting_multiplicity[k].count(literal):
                         buffer.pop(k)
                         match = True
-                if match and buffer:
-                    buffer.pop(j)
+                if match and buffer.count(i[j]):
+                    buffer.remove(i[j])
                 resulting_multiplicity = buffer
-    print(resulting_multiplicity)
     return resulting_multiplicity
 
 
@@ -274,5 +268,6 @@ def is_true_logical_statement(statement: str) -> bool:
         return False
 
 
+simplify_disjunctive_multiplicity("¬¬p∨¬(q∨s), ¬p∨s,¬s ⊢ ¬p∧q, r")
 # ∨    →    ∧    ⊢      ¬
 # "ValueError - '⊢' (logical assumption, turnstile) symbol is not present in the formula"

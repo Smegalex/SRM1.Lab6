@@ -68,15 +68,16 @@ def ResolutionAlgorithm(clauses):
         clauses.update(new_clauses)
 
 
-clauses = [
-    ['P', 'a', 'x', 'f(g(y))'],
-    ['P', 'z', 'f(z)', 'f(n)']
-]
+if __name__ == "__main__":
+    clauses = [
+        ['P', 'a', 'x', 'f(g(y))'],
+        ['P', 'z', 'f(z)', 'f(n)']
+    ]
+    for i in range(1, len(clauses[0])):
+        unification_substitution = Unify(clauses[0][i], clauses[1][i], {})
+        if unification_substitution:
+            print("Уніфікація вдалася. Підстановка:", unification_substitution)
+        else:
+            print("Уніфікація не вдалася.")
 
-unification_substitution = Unify(clauses[0][1], clauses[1][0], {})
-if unification_substitution:
-    print("Уніфікація вдалася. Підстановка:", unification_substitution)
-else:
-    print("Уніфікація не вдалася.")
-
-ResolutionAlgorithm([tuple(clause) for clause in clauses])
+    ResolutionAlgorithm([tuple(clause) for clause in clauses])
